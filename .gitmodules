@@ -1,0 +1,9 @@
+[submodule "gui"]
+	path = gui
+	url = git@github.com:Covoiturafpa/gui.git
+[submodule "api"]
+	path = api
+	url = git@github.com:Covoiturafpa/api.git
+[submodule "db"]
+	path = db
+	url = git@github.com:Covoiturafpa/db.git

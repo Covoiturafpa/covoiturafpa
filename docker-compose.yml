@@ -1,0 +1,86 @@
+services:
+  postgres:
+    container_name: covoit-db
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: CovoiturAfpa
+      POSTGRES_TEMPLATE: template0
+    
+    
+    logging: # option de paramétrage des logs
+      options:
+        max-size: 10m # fichier de 10 Mo maximum
+        max-file: "3" # jusqu'à 3 fichiers de log
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/:/docker-entrypoint-initdb.d/
+
+
+  api:
+    container_name: api
+    build :
+      context : ./api
+
+    # Ci-dessous la redirection du port à décommenter pour les tests en local
+    ports:
+      - "8000:8000"
+
+    # "depends_on" permet d'indiquer que le conteneur api doit attendre le lancement du conteneur "PostgreSQL" avant de démarrer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    # a regler plus tard, flemme... ||
+    #                               U 
+    # environment:
+    #   - SPRING_DATASOURCE_URL=jdbc:postgresql://covoit-db:5432/CovoiturAfpa
+    #   - SPRING_DATASOURCE_USERNAME=afpaUser
+    #   - SPRING_DATASOURCE_PASSWORD=Afpa4apfA
+    #   - SPRING_JPA_HIBERNATE_DDL_AUTO=none
+  # TODO
+
+
+  gui:
+    container_name: gui
+    build : 
+      context : ./gui
+      
+    # Ci-dessous la redirection du port à décommenter pour les tests en local
+    # ports:
+    #   - "8080:8080"
+
+    # links permet d'indiquer que les conteneurs peuvent communiquer sur un réseau interne au moteur Docker
+    # ici, le conteneur du "front" doit pouvoir échanger avec le conteneur du "back"
+    links:
+      # TODO
+      - api
+
+
+
+  nginx:
+    container_name: nginx
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "8080:80"
+      - "443:443" # exposition du port 443 (sécurisé)
+    volumes:
+      # ajout du fichier de configuration du nginx pour en faire un "reverse proxy"
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      # ajout du chemin vers les certificats
+      - ./nginx:/etc/nginx/conf.d/
+    depends_on:
+      - gui
+      - api
+
+
+volumes:
+  postgres_data:
